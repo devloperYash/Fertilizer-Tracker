@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}User Details - {{ user.name }} - Fertilizer Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">
+                <i class="fas fa-user me-2"></i>User Details: {{ user.name }}
+            </h2>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Admin
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- User Information -->
+<div class="row mb-4">
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-id-card me-2"></i>User Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-4">Name:</dt>
+                    <dd class="col-8">{{ user.name }}</dd>
+                    
+                    <dt class="col-4">Email:</dt>
+                    <dd class="col-8">
+                        {{ user.email }}
+                        {% if user.is_admin() %}
+                            <br><span class="badge bg-danger small">Administrator</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-4">Status:</dt>
+                    <dd class="col-8">
+                        {% if user.is_user_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-danger">Blocked</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-4">Joined:</dt>
+                    <dd class="col-8">{{ user.created_at.strftime('%d %B %Y at %I:%M %p') }}</dd>
+                    
+                    {% if user.farm_name %}
+                    <dt class="col-4">Farm:</dt>
+                    <dd class="col-8">{{ user.farm_name }}</dd>
+                    {% endif %}
+                    
+                    {% if user.location %}
+                    <dt class="col-4">Location:</dt>
+                    <dd class="col-8">{{ user.location }}</dd>
+                    {% endif %}
+                </dl>
+                
+                {% if not user.is_admin() %}
+                <div class="mt-3">
+                    <button type="button" 
+                            class="btn btn-{{ 'danger' if user.is_user_active else 'success' }}" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#toggleUserModal">
+                        <i class="fas fa-{{ 'ban' if user.is_user_active else 'check' }} me-1"></i>
+                        {{ 'Block User' if user.is_user_active else 'Activate User' }}
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8 col-md-6">
+        <div class="row">
+            <!-- Statistics Cards -->
+            <div class="col-sm-6 mb-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="fas fa-rupee-sign me-2"></i>Total Expenses
+                        </h6>
+                        <h3 class="rupee-symbol">₹{{ "%.2f"|format(total_expenses) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="fas fa-receipt me-2"></i>Total Bills
+                        </h6>
+                        <h3>{{ bills|length }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 mb-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="fas fa-seedling me-2"></i>Fertilizers
+                        </h6>
+                        <h3>{{ total_fertilizers }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 mb-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="fas fa-calculator me-2"></i>Avg Bill
+                        </h6>
+                        <h3 class="rupee-symbol">
+                            ₹{{ "%.2f"|format(total_expenses / bills|length) if bills|length > 0 else "0.00" }}
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fertilizer Categories -->
+{% if fertilizer_categories %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Fertilizer Categories
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for category, count in fertilizer_categories.items() %}
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-2">
+                        <span class="badge fertilizer-category
+                        {% if category == 'Urea' %}bg-primary
+                        {% elif category == 'DAP' %}bg-success
+                        {% elif category == 'NPK' %}bg-info
+                        {% elif category == 'Organic' %}bg-warning
+                        {% else %}bg-secondary{% endif %} me-1">
+                            {{ category }}
+                        </span>
+                        <span class="ms-1">{{ count }} purchase{{ 's' if count != 1 else '' }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Monthly Expenses -->
+{% if monthly_expenses %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Monthly Expenses
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for month, amount in monthly_expenses.items() %}
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                        <div class="card border-left border-primary">
+                            <div class="card-body p-3">
+                                <h6 class="card-title text-primary mb-1">{{ month }}</h6>
+                                <h5 class="text-success mb-0">₹{{ "%.2f"|format(amount) }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Bills -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-receipt me-2"></i>Recent Bills ({{ bills|length }} total)
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if bills %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Bill #</th>
+                                    <th>Date</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Fertilizers</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bill in bills[:20] %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ bill.bill_number or 'BILL-' + bill.id|string }}</strong>
+                                    </td>
+                                    <td>{{ bill.purchase_date.strftime('%d %b %Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ bill.fertilizer_count }}</span>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">₹{{ "%.2f"|format(bill.total_amount) }}</strong>
+                                    </td>
+                                    <td>
+                                        {% for fertilizer in bill.fertilizers %}
+                                            <div class="mb-1">
+                                                <span class="badge fertilizer-category
+                                                {% if fertilizer.category == 'Urea' %}bg-primary
+                                                {% elif fertilizer.category == 'DAP' %}bg-success
+                                                {% elif fertilizer.category == 'NPK' %}bg-info
+                                                {% elif fertilizer.category == 'Organic' %}bg-warning
+                                                {% else %}bg-secondary{% endif %} me-1">
+                                                    {{ fertilizer.category }}
+                                                </span>
+                                                {{ fertilizer.name }} - ₹{{ "%.2f"|format(fertilizer.price) }}
+                                            </div>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if bills|length > 20 %}
+                    <div class="text-center mt-3">
+                        <p class="text-muted">Showing 20 most recent bills out of {{ bills|length }} total bills.</p>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No bills found</h5>
+                        <p class="text-muted">This user hasn't recorded any fertilizer purchases yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toggle User Modal -->
+{% if not user.is_admin() %}
+<div class="modal fade" id="toggleUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    {{ 'Block' if user.is_user_active else 'Activate' }} User
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to {{ 'block' if user.is_user_active else 'activate' }} 
+                   user <strong>{{ user.name }}</strong>?</p>
+                {% if user.is_user_active %}
+                    <p class="text-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        This user will not be able to log in until reactivated.
+                    </p>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <form method="POST" action="{{ url_for('toggle_user_status', user_id=user.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-{{ 'danger' if user.is_user_active else 'success' }}">
+                        {{ 'Block User' if user.is_user_active else 'Activate User' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

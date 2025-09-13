@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Import Data - Fertilizer Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10 col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-upload me-2"></i>Import Fertilizer Data
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Import Instructions:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Upload a CSV file with fertilizer data</li>
+                        <li>Required columns: Fertilizer Name, Category, Price</li>
+                        <li>Price should be in Indian Rupees (₹)</li>
+                        <li>Category must be one of: Urea, DAP, NPK, MOP, SSP, Organic, Micronutrients, Liquid</li>
+                    </ul>
+                </div>
+                
+                <div class="mb-3">
+                    <a href="{{ url_for('download_sample_csv') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-download me-2"></i>Download Sample CSV
+                    </a>
+                </div>
+                
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.file.label(class="form-label") }}
+                        {{ form.file(class="form-control", accept=".csv") }}
+                        {% for error in form.file.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">
+                            Select a CSV file to import fertilizer expenses.
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-success btn-lg") }}
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

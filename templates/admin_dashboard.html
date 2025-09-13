@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Fertilizer Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">
+                <i class="fas fa-shield-alt me-2 text-danger"></i>Admin Dashboard
+            </h2>
+            <span class="badge bg-danger fs-6">Administrator</span>
+        </div>
+    </div>
+</div>
+
+<!-- Platform Statistics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-users me-2"></i>Total Users
+                </h6>
+                <h3>{{ total_users }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-user-check me-2"></i>Active Users
+                </h6>
+                <h3>{{ active_users }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-rupee-sign me-2"></i>Platform Revenue
+                </h6>
+                <h3 class="rupee-symbol">₹{{ "%.2f"|format(total_platform_expenses) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-receipt me-2"></i>Total Bills
+                </h6>
+                <h3>{{ total_platform_bills }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Management Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-users-cog me-2"></i>User Management
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if user_stats %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Farm Details</th>
+                                    <th>Status</th>
+                                    <th>Expenses</th>
+                                    <th>Bills</th>
+                                    <th>Last Activity</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in user_stats %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2">
+                                                {% if stat.user.is_admin() %}
+                                                    <i class="fas fa-shield-alt text-danger" title="Administrator"></i>
+                                                {% else %}
+                                                    <i class="fas fa-user text-muted"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <strong>{{ stat.user.name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    Joined: {{ stat.user.created_at.strftime('%d %b %Y') }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {{ stat.user.email }}
+                                        {% if stat.user.is_admin() %}
+                                            <br><span class="badge bg-danger small">Admin</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stat.user.farm_name %}
+                                            <strong>{{ stat.user.farm_name }}</strong><br>
+                                        {% endif %}
+                                        {% if stat.user.location %}
+                                            <small class="text-muted">{{ stat.user.location }}</small>
+                                        {% endif %}
+                                        {% if not stat.user.farm_name and not stat.user.location %}
+                                            <span class="text-muted">Not provided</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stat.user.is_user_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Blocked</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">₹{{ "%.2f"|format(stat.total_expenses) }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ stat.total_bills }}</span>
+                                        <br>
+                                        <small class="text-muted">{{ stat.total_fertilizers }} items</small>
+                                    </td>
+                                    <td>
+                                        {% if stat.last_activity %}
+                                            {{ stat.last_activity.strftime('%d %b %Y') }}
+                                        {% else %}
+                                            <span class="text-muted">No activity</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical" role="group">
+                                            <a href="{{ url_for('admin_user_details', user_id=stat.user.id) }}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>Details
+                                            </a>
+                                            {% if not stat.user.is_admin() %}
+                                                <button type="button" 
+                                                        class="btn btn-outline-{{ 'danger' if stat.user.is_user_active else 'success' }} btn-sm" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#toggleUserModal{{ stat.user.id }}">
+                                                    <i class="fas fa-{{ 'ban' if stat.user.is_user_active else 'check' }} me-1"></i>
+                                                    {{ 'Block' if stat.user.is_user_active else 'Activate' }}
+                                                </button>
+                                            {% else %}
+                                                <span class="btn btn-outline-secondary btn-sm disabled">
+                                                    <i class="fas fa-shield-alt me-1"></i>Admin
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Toggle User Modal -->
+                                        {% if not stat.user.is_admin() %}
+                                        <div class="modal fade" id="toggleUserModal{{ stat.user.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">
+                                                            {{ 'Block' if stat.user.is_user_active else 'Activate' }} User
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Are you sure you want to {{ 'block' if stat.user.is_user_active else 'activate' }} 
+                                                           user <strong>{{ stat.user.name }}</strong>?</p>
+                                                        {% if stat.user.is_user_active %}
+                                                            <p class="text-warning">
+                                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                                This user will not be able to log in until reactivated.
+                                                            </p>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                            Cancel
+                                                        </button>
+                                                        <form method="POST" action="{{ url_for('toggle_user_status', user_id=stat.user.id) }}" class="d-inline">
+                                                            <button type="submit" class="btn btn-{{ 'danger' if stat.user.is_user_active else 'success' }}">
+                                                                {{ 'Block User' if stat.user.is_user_active else 'Activate User' }}
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No users found</h5>
+                        <p class="text-muted">No users have registered on the platform yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

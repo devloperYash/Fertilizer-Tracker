@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Add Comprehensive Expense - Farm Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10 col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>Add Comprehensive Farm Expense
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="expenseForm">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", placeholder="e.g., Urea 50kg bags") }}
+                            {% for error in form.description.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.category.label(class="form-label") }}
+                            {{ form.category(class="form-select", onchange="updateFieldsByCategory()") }}
+                            {% for error in form.category.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.quantity.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.quantity(class="form-control", step="0.01", onchange="calculateTotal()") }}
+                                <span class="input-group-text">
+                                    <i class="fas fa-balance-scale"></i>
+                                </span>
+                            </div>
+                            {% for error in form.quantity.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            {{ form.unit.label(class="form-label") }}
+                            {{ form.unit(class="form-select") }}
+                            {% for error in form.unit.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            {{ form.unit_price.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                {{ form.unit_price(class="form-control", step="0.01", onchange="calculateTotal()") }}
+                            </div>
+                            {% for error in form.unit_price.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.total_amount.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                {{ form.total_amount(class="form-control", step="0.01") }}
+                            </div>
+                            {% for error in form.total_amount.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.expense_date.label(class="form-label") }}
+                            {{ form.expense_date(class="form-control", value=today_date) }}
+                            {% for error in form.expense_date.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.supplier_id.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.supplier_id(class="form-select") }}
+                                <a href="{{ url_for('add_supplier') }}" class="btn btn-outline-primary" target="_blank">
+                                    <i class="fas fa-plus"></i>
+                                </a>
+                            </div>
+                            {% for error in form.supplier_id.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.field_id.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.field_id(class="form-select") }}
+                                <a href="{{ url_for('add_field') }}" class="btn btn-outline-primary" target="_blank">
+                                    <i class="fas fa-plus"></i>
+                                </a>
+                            </div>
+                            {% for error in form.field_id.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.payment_method.label(class="form-label") }}
+                            {{ form.payment_method(class="form-select") }}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            {{ form.payment_status.label(class="form-label") }}
+                            {{ form.payment_status(class="form-select") }}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            {{ form.season.label(class="form-label") }}
+                            {{ form.season(class="form-select") }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.crop_cycle.label(class="form-label") }}
+                            {{ form.crop_cycle(class="form-control", placeholder="e.g., Rice 2024") }}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.application_date.label(class="form-label") }}
+                            {{ form.application_date(class="form-control") }}
+                            <small class="text-muted">For fertilizers/pesticides - when applied</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.notes.label(class="form-label") }}
+                        {{ form.notes(class="form-control", rows="3", placeholder="Additional notes about this expense...") }}
+                        {% for error in form.notes.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-success btn-lg") }}
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function calculateTotal() {
+    const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+    const unitPrice = parseFloat(document.getElementById('unit_price').value) || 0;
+    const total = quantity * unitPrice;
+    document.getElementById('total_amount').value = total.toFixed(2);
+}
+
+function updateFieldsByCategory() {
+    const category = document.getElementById('category').value;
+    // Add any category-specific logic here
+    console.log('Selected category:', category);
+}
+</script>
+{% endblock %}
