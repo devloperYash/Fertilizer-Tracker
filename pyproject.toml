@@ -16,4 +16,5 @@ dependencies = [
     "markdown>=3.9",
     "pydantic>=2.11.8",
     "sift-stack-py>=0.8.5",
+    "gunicorn>=21.2.0"
 ]
