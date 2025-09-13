@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Add Bill - Fertilizer Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-md-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-receipt me-2"></i>Add New Fertilizer Bill
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Bill Entry:</strong> Add all fertilizers from a single purchase/bill transaction. You can add multiple items and the total will be calculated automatically.
+                </div>
+
+                <form method="POST" id="billForm">
+                    <!-- Bill Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="purchase_date" class="form-label">
+                                <i class="fas fa-calendar-alt me-1"></i>Purchase Date <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="form-control" id="purchase_date" name="purchase_date" 
+                                   value="{{ today_date }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bill_number" class="form-label">
+                                <i class="fas fa-hashtag me-1"></i>Bill Number <small class="text-muted">(Optional)</small>
+                            </label>
+                            <input type="text" class="form-control" id="bill_number" name="bill_number" 
+                                   placeholder="e.g., BILL-001, INV-2025-001">
+                        </div>
+                    </div>
+
+                    <!-- Fertilizers Section -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-seedling me-2"></i>Fertilizers in this Bill
+                            </h6>
+                            <button type="button" class="btn btn-success btn-sm" onclick="addFertilizerRow()">
+                                <i class="fas fa-plus me-1"></i>Add Fertilizer
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="fertilizer-rows">
+                                <!-- Initial row -->
+                                <div class="fertilizer-row border rounded p-3 mb-3" data-row-index="0">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Fertilizer Name <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" name="fertilizer_name[]" 
+                                                   placeholder="e.g., Coromandel Urea" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Category</label>
+                                            <select class="form-select" name="fertilizer_category[]">
+                                                {% for value, label in categories %}
+                                                    <option value="{{ value }}">{{ label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Price (₹) <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control price-input" name="fertilizer_price[]" 
+                                                   step="0.01" min="0" placeholder="0.00" required onchange="updateTotal()">
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="button" class="btn btn-outline-danger" onclick="removeFertilizerRow(this)" 
+                                                    style="margin-top: 32px;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Bill Summary -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="bg-light p-3 rounded">
+                                        <h6 class="mb-2">
+                                            <i class="fas fa-calculator me-1"></i>Bill Summary
+                                        </h6>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Total Items:</span>
+                                            <span id="item-count" class="fw-bold">1</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Total Amount:</span>
+                                            <span id="total-amount" class="fw-bold text-success fs-5">₹0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-save me-2"></i>Save Bill
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let rowIndex = 1;
+
+function addFertilizerRow() {
+    const container = document.getElementById('fertilizer-rows');
+    const newRow = document.createElement('div');
+    newRow.className = 'fertilizer-row border rounded p-3 mb-3';
+    newRow.setAttribute('data-row-index', rowIndex);
+    
+    newRow.innerHTML = `
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <label class="form-label">Fertilizer Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="fertilizer_name[]" 
+                       placeholder="e.g., Coromandel Urea" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select class="form-select" name="fertilizer_category[]">
+                    {% for value, label in categories %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Price (₹) <span class="text-danger">*</span></label>
+                <input type="number" class="form-control price-input" name="fertilizer_price[]" 
+                       step="0.01" min="0" placeholder="0.00" required onchange="updateTotal()">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger" onclick="removeFertilizerRow(this)" 
+                        style="margin-top: 32px;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(newRow);
+    rowIndex++;
+    updateTotal();
+}
+
+function removeFertilizerRow(button) {
+    const row = button.closest('.fertilizer-row');
+    const container = document.getElementById('fertilizer-rows');
+    
+    // Don't remove if it's the only row
+    if (container.children.length > 1) {
+        row.remove();
+        updateTotal();
+    } else {
+        alert('At least one fertilizer item is required.');
+    }
+}
+
+function updateTotal() {
+    const priceInputs = document.querySelectorAll('.price-input');
+    let total = 0;
+    let count = 0;
+    
+    priceInputs.forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        if (value > 0) {
+            total += value;
+            count++;
+        }
+    });
+    
+    document.getElementById('total-amount').textContent = `₹${total.toFixed(2)}`;
+    document.getElementById('item-count').textContent = priceInputs.length;
+}
+
+// Initialize total on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateTotal();
+});
+</script>
+{% endblock %}

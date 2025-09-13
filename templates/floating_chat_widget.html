@@ -1,0 +1,351 @@
+<!-- Floating Chat Widget -->
+<div id="floating-chat-widget" class="floating-chat-widget">
+    <!-- Chat Toggle Button -->
+    <div id="chat-toggle-btn" class="chat-toggle-btn">
+        <i class="fas fa-robot"></i>
+        <span class="chat-notification-badge" id="chat-notification" style="display: none;"></span>
+    </div>
+    
+    <!-- Chat Window -->
+    <div id="chat-window" class="chat-window" style="display: none;">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="chat-header-info">
+                <i class="fas fa-robot me-2"></i>
+                <span class="chat-title">Farm AI Assistant</span>
+                <span class="chat-status online">Online</span>
+            </div>
+            <div class="chat-header-actions">
+                <button id="chat-clear-btn" class="btn-icon" title="Clear Chat">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <button id="chat-minimize-btn" class="btn-icon" title="Minimize">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Chat Messages -->
+        <div id="chat-messages" class="chat-messages">
+            <div class="welcome-message">
+                <div class="ai-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <p><strong>Welcome to your Farm AI Assistant! 🌾</strong></p>
+                    <p>I'm here to help you with:</p>
+                    <ul>
+                        <li>🌱 Crop planning and seasonal advice</li>
+                        <li>💰 Expense analysis and cost optimization</li>
+                        <li>🚜 Farm equipment guidance</li>
+                        <li>🌧️ Weather and irrigation planning</li>
+                        <li>📊 Market prices and schemes</li>
+                    </ul>
+                    <p><em>Ask me anything about farming!</em></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Typing Indicator -->
+        <div id="typing-indicator" class="typing-indicator" style="display: none;">
+            <div class="ai-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <span class="typing-text">AI is thinking...</span>
+        </div>
+        
+        <!-- Chat Input -->
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <textarea id="chat-input" 
+                         placeholder="Ask about your crops, expenses, farming advice..."
+                         maxlength="500"
+                         rows="1"></textarea>
+                <button id="chat-send-btn" class="chat-send-btn" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="chat-input-footer">
+                <span class="character-count">0/500</span>
+                <span class="farming-only-note">🌾 Farming questions only</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chat Widget JavaScript -->
+<script>
+class FloatingChatWidget {
+    constructor() {
+        this.isOpen = false;
+        this.isLoading = false;
+        this.initializeElements();
+        this.bindEvents();
+        this.loadChatHistory();
+        this.autoResizeTextarea();
+    }
+    
+    initializeElements() {
+        this.widget = document.getElementById('floating-chat-widget');
+        this.toggleBtn = document.getElementById('chat-toggle-btn');
+        this.chatWindow = document.getElementById('chat-window');
+        this.messagesContainer = document.getElementById('chat-messages');
+        this.chatInput = document.getElementById('chat-input');
+        this.sendBtn = document.getElementById('chat-send-btn');
+        this.clearBtn = document.getElementById('chat-clear-btn');
+        this.minimizeBtn = document.getElementById('chat-minimize-btn');
+        this.typingIndicator = document.getElementById('typing-indicator');
+        this.charCount = document.querySelector('.character-count');
+        this.notification = document.getElementById('chat-notification');
+    }
+    
+    bindEvents() {
+        this.toggleBtn.addEventListener('click', () => this.toggleChat());
+        this.minimizeBtn.addEventListener('click', () => this.closeChat());
+        this.sendBtn.addEventListener('click', () => this.sendMessage());
+        this.clearBtn.addEventListener('click', () => this.clearChat());
+        
+        this.chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+        
+        this.chatInput.addEventListener('input', () => {
+            this.updateCharCount();
+            this.toggleSendButton();
+            this.autoResizeTextarea();
+        });
+        
+        // Close chat when clicking outside
+        document.addEventListener('click', (e) => {
+            if (this.isOpen && !this.widget.contains(e.target)) {
+                this.closeChat();
+            }
+        });
+    }
+    
+    toggleChat() {
+        if (this.isOpen) {
+            this.closeChat();
+        } else {
+            this.openChat();
+        }
+    }
+    
+    openChat() {
+        this.isOpen = true;
+        this.chatWindow.style.display = 'block';
+        this.toggleBtn.classList.add('active');
+        this.notification.style.display = 'none';
+        
+        // Animate opening
+        setTimeout(() => {
+            this.chatWindow.classList.add('show');
+            this.scrollToBottom();
+            this.chatInput.focus();
+        }, 10);
+    }
+    
+    closeChat() {
+        this.isOpen = false;
+        this.chatWindow.classList.remove('show');
+        this.toggleBtn.classList.remove('active');
+        
+        setTimeout(() => {
+            this.chatWindow.style.display = 'none';
+        }, 300);
+    }
+    
+    async sendMessage() {
+        const message = this.chatInput.value.trim();
+        if (!message || this.isLoading) return;
+        
+        this.isLoading = true;
+        this.showTypingIndicator();
+        
+        // Add user message
+        this.addMessage('user', message);
+        this.chatInput.value = '';
+        this.updateCharCount();
+        this.toggleSendButton();
+        this.autoResizeTextarea();
+        
+        try {
+            const response = await fetch('/ai/chat/widget', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: message })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.addMessage('ai', data.ai_response, data.timestamp);
+            } else {
+                this.addMessage('ai', data.error || 'Sorry, I encountered an error. Please try again.');
+            }
+        } catch (error) {
+            this.addMessage('ai', 'Sorry, I\'m having trouble connecting. Please try again later.');
+        } finally {
+            this.hideTypingIndicator();
+            this.isLoading = false;
+        }
+    }
+    
+    addMessage(type, content, timestamp = null) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${type}-message`;
+        
+        const currentTime = timestamp || new Date().toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+        
+        if (type === 'user') {
+            messageDiv.innerHTML = `
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-text">${this.escapeHtml(content)}</div>
+                    <div class="message-time">${currentTime}</div>
+                </div>
+            `;
+        } else {
+            messageDiv.innerHTML = `
+                <div class="ai-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-text">${content}</div>
+                    <div class="message-time">${currentTime}</div>
+                </div>
+            `;
+        }
+        
+        this.messagesContainer.appendChild(messageDiv);
+        this.scrollToBottom();
+        
+        // Show notification if chat is closed
+        if (!this.isOpen && type === 'ai') {
+            this.showNotification();
+        }
+    }
+    
+    showTypingIndicator() {
+        this.typingIndicator.style.display = 'flex';
+        this.scrollToBottom();
+    }
+    
+    hideTypingIndicator() {
+        this.typingIndicator.style.display = 'none';
+    }
+    
+    showNotification() {
+        this.notification.style.display = 'block';
+        this.notification.textContent = '1';
+    }
+    
+    scrollToBottom() {
+        setTimeout(() => {
+            this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+        }, 100);
+    }
+    
+    updateCharCount() {
+        const count = this.chatInput.value.length;
+        this.charCount.textContent = `${count}/500`;
+        
+        if (count > 450) {
+            this.charCount.style.color = '#dc3545';
+        } else if (count > 400) {
+            this.charCount.style.color = '#ffc107';
+        } else {
+            this.charCount.style.color = '#6c757d';
+        }
+    }
+    
+    toggleSendButton() {
+        const hasText = this.chatInput.value.trim().length > 0;
+        this.sendBtn.disabled = !hasText || this.isLoading;
+    }
+    
+    autoResizeTextarea() {
+        this.chatInput.style.height = 'auto';
+        const maxHeight = 100; // pixels
+        const newHeight = Math.min(this.chatInput.scrollHeight, maxHeight);
+        this.chatInput.style.height = newHeight + 'px';
+    }
+    
+    async loadChatHistory() {
+        try {
+            const response = await fetch('/ai/chat/history');
+            const data = await response.json();
+            
+            if (data.chat_history && data.chat_history.length > 0) {
+                // Clear welcome message if there's chat history
+                const welcomeMsg = this.messagesContainer.querySelector('.welcome-message');
+                if (welcomeMsg) welcomeMsg.style.display = 'none';
+                
+                data.chat_history.forEach(msg => {
+                    this.addMessage(msg.type, msg.message, msg.timestamp);
+                });
+            }
+        } catch (error) {
+            console.log('Could not load chat history');
+        }
+    }
+    
+    async clearChat() {
+        if (confirm('Clear all chat history?')) {
+            try {
+                await fetch('/ai/chat/clear', { method: 'POST' });
+                this.messagesContainer.innerHTML = `
+                    <div class="welcome-message">
+                        <div class="ai-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <p><strong>Welcome to your Farm AI Assistant! 🌾</strong></p>
+                            <p>I'm here to help you with:</p>
+                            <ul>
+                                <li>🌱 Crop planning and seasonal advice</li>
+                                <li>💰 Expense analysis and cost optimization</li>
+                                <li>🚜 Farm equipment guidance</li>
+                                <li>🌧️ Weather and irrigation planning</li>
+                                <li>📊 Market prices and schemes</li>
+                            </ul>
+                            <p><em>Ask me anything about farming!</em></p>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                alert('Could not clear chat history');
+            }
+        }
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
+
+// Initialize chat widget when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    {% if current_user.is_authenticated %}
+    new FloatingChatWidget();
+    {% endif %}
+});
+</script>
